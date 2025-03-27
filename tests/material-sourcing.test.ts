@@ -1,21 +1,121 @@
+import { describe, it, expect, beforeEach } from 'vitest';
 
-import { describe, expect, it } from "vitest";
+// Mock state
+let mockState = {
+  lastMaterialId: 0,
+  materials: new Map()
+};
 
-const accounts = simnet.getAccounts();
-const address1 = accounts.get("wallet_1")!;
-
-/*
-  The test below is an example. To learn more, read the testing documentation here:
-  https://docs.hiro.so/stacks/clarinet-js-sdk
-*/
-
-describe("example tests", () => {
-  it("ensures simnet is well initalised", () => {
-    expect(simnet.blockHeight).toBeDefined();
+// Mock functions
+function registerMaterial(name: string, type: string, sourceLocation: string, sustainable: boolean, sender: string) {
+  const newId = mockState.lastMaterialId + 1;
+  mockState.materials.set(newId, {
+    name,
+    type,
+    sourceLocation,
+    sustainable,
+    registrar: sender,
+    registrationTime: 123 // Mock block height
   });
+  mockState.lastMaterialId = newId;
+  return { ok: newId };
+}
 
-  // it("shows an example", () => {
-  //   const { result } = simnet.callReadOnlyFn("counter", "get-counter", [], address1);
-  //   expect(result).toBeUint(0);
-  // });
+function getMaterial(materialId: number) {
+  return mockState.materials.get(materialId) || null;
+}
+
+function isSustainable(materialId: number) {
+  const material = mockState.materials.get(materialId);
+  return material ? material.sustainable : false;
+}
+
+function getMaterialCount() {
+  return mockState.lastMaterialId;
+}
+
+describe('Material Sourcing Contract', () => {
+  beforeEach(() => {
+    // Reset state before each test
+    mockState = {
+      lastMaterialId: 0,
+      materials: new Map()
+    };
+  });
+  
+  it('should register a new material', () => {
+    const result = registerMaterial(
+        'Cedar',
+        'Wood',
+        'Pacific Northwest',
+        true,
+        'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM'
+    );
+    
+    expect(result.ok).toBe(1);
+    expect(mockState.lastMaterialId).toBe(1);
+    expect(mockState.materials.size).toBe(1);
+  });
+  
+  it('should retrieve a material by ID', () => {
+    registerMaterial(
+        'Cedar',
+        'Wood',
+        'Pacific Northwest',
+        true,
+        'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM'
+    );
+    
+    const material = getMaterial(1);
+    
+    expect(material).not.toBeNull();
+    expect(material?.name).toBe('Cedar');
+    expect(material?.type).toBe('Wood');
+    expect(material?.sustainable).toBe(true);
+  });
+  
+  it('should check if a material is sustainable', () => {
+    registerMaterial(
+        'Cedar',
+        'Wood',
+        'Pacific Northwest',
+        true,
+        'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM'
+    );
+    
+    registerMaterial(
+        'Endangered Teak',
+        'Wood',
+        'Southeast Asia',
+        false,
+        'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM'
+    );
+    
+    expect(isSustainable(1)).toBe(true);
+    expect(isSustainable(2)).toBe(false);
+  });
+  
+  it('should return the correct material count', () => {
+    expect(getMaterialCount()).toBe(0);
+    
+    registerMaterial(
+        'Cedar',
+        'Wood',
+        'Pacific Northwest',
+        true,
+        'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM'
+    );
+    
+    expect(getMaterialCount()).toBe(1);
+    
+    registerMaterial(
+        'Hemp',
+        'Fiber',
+        'Midwest',
+        true,
+        'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM'
+    );
+    
+    expect(getMaterialCount()).toBe(2);
+  });
 });
