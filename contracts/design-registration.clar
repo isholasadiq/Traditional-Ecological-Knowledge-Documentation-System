@@ -1,30 +1,53 @@
+;; Design Registration Contract
+;; Documents traditional watercraft construction
 
-;; title: design-registration
-;; version:
-;; summary:
-;; description:
+;; Define data variables
+(define-data-var last-design-id uint u0)
 
-;; traits
-;;
+;; Define data maps
+(define-map designs
+  { design-id: uint }
+  {
+    name: (string-utf8 100),
+    description: (string-utf8 500),
+    region: (string-utf8 100),
+    owner: principal,
+    creation-time: uint
+  }
+)
 
-;; token definitions
-;;
+;; Register a new design
+(define-public (register-design (name (string-utf8 100)) (description (string-utf8 500)) (region (string-utf8 100)))
+  (let
+    (
+      (new-id (+ (var-get last-design-id) u1))
+    )
+    (map-set designs
+      { design-id: new-id }
+      {
+        name: name,
+        description: description,
+        region: region,
+        owner: tx-sender,
+        creation-time: block-height
+      }
+    )
+    (var-set last-design-id new-id)
+    (ok new-id)
+  )
+)
 
-;; constants
-;;
+;; Get design details
+(define-read-only (get-design (design-id uint))
+  (map-get? designs { design-id: design-id })
+)
 
-;; data vars
-;;
+;; Check if a design exists
+(define-read-only (design-exists (design-id uint))
+  (is-some (map-get? designs { design-id: design-id }))
+)
 
-;; data maps
-;;
-
-;; public functions
-;;
-
-;; read only functions
-;;
-
-;; private functions
-;;
-
+;; Get the total number of designs
+(define-read-only (get-design-count)
+  (var-get last-design-id)
+)
